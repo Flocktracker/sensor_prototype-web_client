@@ -1,24 +1,102 @@
-<!doctype html>
+<html>
+  <head>
+    <link rel="stylesheet" type="text/css" href="css/c3.css">
+  </head>
+  <body>
+    <div style="text-align:center">
+      <img src="/img/ft_logo.png" alt="some_text" style="width:50%;height:height;float: left">
+      <img src="/img/dlab.jpg" alt="some_text" style="width:15%;height:height;float: right">
+    </div>
+    
+    <div id="chart"></div>
 
-<html lang="en">
-<head>
-	<meta charset="utf-8">
-	<title>pH readings</title>
-	<meta name="description" content="The HTML5 Herald">
-	<meta name="author" content="SitePoint">
+    <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+    <script src="js/c3.min.js"></script>
+    <script>
 
-	<link rel="stylesheet" href="css/styles.css?v=1.0">
-	<!-- Load c3.css -->
-	<link href="/css/c3.css" rel="stylesheet" type="text/css">
+    var chart = null;
 
-	<!-- Load d3.js and c3.js -->
-	<script src="/js/d3.min.js" charset="utf-8"></script>
-	<script src="/js/c3.min.js"></script>
+    var getJSON = function(url) {
+      return new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open('get', url, true);
+        xhr.responseType = 'jsonp';
+        xhr.onload = function() {
+          var status = xhr.status;
+          if (status == 200) {
+            resolve(xhr.response);
+          } else {
+            reject(status);
+          }
+        };
+        xhr.send();
+      });
+    };
+
+    function updateChart(data){
+      var timestamps = ["Time"];
+      var pHs = ["pH"];
+      for (var i = data.length - 1; i >= 0; i--) {
+        //timestamps.push(new Date(Date.parse(data[i].time_stamp)));
+        timestamps.push(data[i].time_stamp);
+        pHs.push(data[i].ph);
+      }
+      console.log(data);
+      console.log(timestamps);
+      console.log(pHs);
 
 
-</head>
+      if (chart == null){
+          c3.generate({
+            bindto: '#chart',
+            data: {
+              x : 'Time',
+              xFormat : '%Y-%m-%dT%H:%M:%S.%LZ',
+              columns: [
+    //            ['x', '2013-01-01', '2013-01-02', '2013-01-03', '2013-01-04', '2013-01-05', '2013-01-06'],
+                timestamps,
+                pHs
+              ]
+            },
+            axis : {
+              x : {
+                type : 'timeseries',
+                tick : {
+    //              format : "%m/%d" // https://github.com/mbostock/d3/wiki/Time-Formatting#wiki-format
+                  format : "%Y-%m-%dT%H:%M:%S" // https://github.com/mbostock/d3/wiki/Time-Formatting#wiki-format
+                }
+              }
+            }
+          });
+      } else {
+          chart.load({
+          columns: [
+            timestamps,
+                pHs
+          ]
+        });
+      }
+    }
 
-<body>
-	<div id="chart"></div>
-</body>
+
+    function updateData(){
+      var jsonPromise = getJSON('http://883768b9.ngrok.io/ph_json');
+      jsonPromise.then(function(response) {
+        updateChart(JSON.parse(response));
+      }, function(error) {
+        console.error("Failed!", error);
+      })
+    }
+
+    updateData();
+
+    setInterval(function() {
+      updateData();
+    }, 5000); 
+
+
+
+
+    </script>
+  </body>
 </html>
